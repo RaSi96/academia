@@ -1,4 +1,4 @@
-#set_project Makefile: expected location "project_1/"
+#set_project Makefile: expected location "set_project/"
 
 #directory variables setup
 SRC		= src
@@ -15,14 +15,15 @@ MSC_DIR	= misc_funcs
 MSC_FNS	= $(wildcard $(MSC_DIR)/*.c)
 
 #compiler variables setup
-CC_ALL	:= gcc -g -Wall -Wextra -Wformat=2 -Wnull-dereference -Wpedantic -O3
-CC_DBG	:= gcc -g -Wall -Wextra -Wformat=2 -Wnull-dereference -Wpedantic
+CC_ALL	:= gcc -Wall -Wextra -Wformat=2 -Wnull-dereference -Wpedantic -O3
+CC_DBG	:= gcc -Wall -Wextra -Wformat=2 -Wnull-dereference -Wpedantic -g3
 
 all:	$(SRCS) $(HEADERS) $(SET_OPS) $(SET_FNS) $(MSC_FNS)
 		$(CC_ALL) $^ -o $(SRC)/set_practical
 
 debug:	$(SRCS) $(HEADERS) $(SET_OPS) $(SET_FNS) $(MSC_FNS)
-		$(CC_DBG) $^ -o $(SRC)/set_prac-debug
+		$(CC_DBG) $^ -o $(SRC)/set_debug
 
 clean:
 		rm -rf all
+		rm -rf debug
