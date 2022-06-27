@@ -1,4 +1,4 @@
-#fsm_practical Makefile: expected location "project_2/" 
+#fsm_practical Makefile: expected location "fsm_project/" 
 
 #directory variables setup
 SRC		= src
