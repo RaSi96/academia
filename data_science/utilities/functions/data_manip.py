@@ -68,7 +68,7 @@ def data_viewer(data, max_threshold = 5):
 
 
 # --------------------------------------------------------------------------- #
-def u_count(data, u_val = 5, verbose = True):
+def u_count(data, u_val = 5):
     """
     Description:
     ---------------
@@ -82,7 +82,6 @@ def u_count(data, u_val = 5, verbose = True):
     data = the dataframe to use.
     u_val = the number of unique values that a feature should have.
             (default = 5)
-    verbose = if True, print the distribution of every feature that qualifies.
 
     Returns:
     ---------------
@@ -91,14 +90,12 @@ def u_count(data, u_val = 5, verbose = True):
     c_cols = []
     for col in data.columns[(data.nunique() < u_val)]:
         c_cols.append(col)
-        if verbose is True:
-            print(data[col].value_counts(normalize = True))
 
     return c_cols
 
 
 # --------------------------------------------------------------------------- #
-def u_skew(data, u_dist = 0.80, verbose = True):
+def u_skew(data, u_dist = 0.80):
     """
     Description:
     ---------------
@@ -118,7 +115,6 @@ def u_skew(data, u_dist = 0.80, verbose = True):
     u_dist = the decimal percentage distribution that observations in a feature
              should have. Should be between 0 and 1.
              (default = 0.80)
-    verbose = (bool) if True, print the name of every feature that qualifies.
 
     Returns:
     ---------------
@@ -131,8 +127,6 @@ def u_skew(data, u_dist = 0.80, verbose = True):
         for col in data.columns:
             if data[col].value_counts(normalize = True).values[0] > u_dist:
                 s_cols.append(col)
-                if verbose is True:
-                    print(col)
 
         return s_cols
 
