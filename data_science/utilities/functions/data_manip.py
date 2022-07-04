@@ -69,90 +69,93 @@ def data_viewer(data, max_threshold = 5):
 
 
 # --------------------------------------------------------------------------- #
-def u_count(data, u_val = 5):
+def u_count(data, u_val = 5, exact = False):
     """
     Description:
     ---------------
-    A simple function to retrieve the features in a dataframe that have less
-    than u_val number of unique values. For example if a dataframe has features
-    with less than 5 unique values, those features will qualify. Essentially a
-    wrapper to df[col].value_counts(normalize = True).
+    A simple function to retrieve the features in a dataframe that have either
+    exactly or up to u_val number of unique values.
 
     Parameters:
     ---------------
     data [pd.DataFrame] = the dataframe to use.
     u_val [int] = the number of unique values that a feature should have.
                   (default = 5)
+    exact[bool] = if True, only features with exactly u_val number of unique
+                  values will qualify.
+                  (default = False)
 
     Returns:
     ---------------
     A list of names of all the features that qualified.
     """
     c_cols = []
-    for col in data.columns[(data.nunique() < u_val)]:
-        c_cols.append(col)
+
+    if exact is False:
+        for col in data.columns[data.nunique() <= u_val]:
+            c_cols.append(col)
+    else:
+        for col in data.columns[data.nunique() == u_val]:
+            c_cols.append(col)
 
     return c_cols
 
 
 # --------------------------------------------------------------------------- #
-def u_skew(data, u_dist = 0.80):
+def u_skew(data, u_dist = 0.90):
     """
     Description:
     ---------------
-    A simple sister-function to u_count that retrieves the names of features
-    in a dataframe that have an observation with a value count percentage of
-    greater than u_dist. For example, if a feature with 3 values is distributed
-    as:
-    a    0.8156
-    b    0.0943
-    c    0.0901
-    the feature will qualify since its dominant value constitues 80% of the
-    feature's data.
+    A function that retrieves the names of features in a dataframe that have an
+    observation account for greater than or exactly u_dist percent. For example
+    if a feature with 3 values is distributed as:
+    a    0.9156
+    b    0.0534
+    c    0.0310
+    the feature will qualify since its dominant value constitues 90% and above
+    of the feature's data.
 
     Parameters:
     ---------------
     data [pd.DataFrame] = the dataframe to use.
     u_dist [int] = the percentage distribution that observations in a feature
                    should have. Should be between 0 and 1.
-                   (default = 0.80)
+                   (default = 0.90)
 
     Returns:
     ---------------
     A list of names of all the features that qualified.
     """
     s_cols = []
+
     if u_dist < 0 or u_dist > 1:
         raise Exception("u_dist should be between 0 and 1.")
     else:
         for col in data.columns:
-            if data[col].value_counts(normalize = True).values[0] > u_dist:
+            if data[col].value_counts(normalize = True).values[0] >= u_dist:
                 s_cols.append(col)
 
         return s_cols
 
 
 # --------------------------------------------------------------------------- #
-def get_contrib(data, against, minority = False):
+def get_contrib(data, against, minority = True):
     """
     A function that breaks down the contributors to a feature's minority or
     majority value. Useful in understanding the level of skew within a feature.
 
     If a dataframe feature has a skewed distribution (one value >=85%), instead
     of removing the column outright it helps to understand whether the dominant
-    value can be used to regress against or classify multiple other values in
-    another feature (usually the target vector.) In that case, removing such a
-    skewed column would result in a direct loss of workable information.
-
-    The function receives the dataframe "data" which is believed to have skewed
-    features, then checks the normalised value counts in the feature "against"
-    using the dominant value in every column of "data".
+    or minority value can be used to regress against or classify multiple other
+    values in another feature (usually the target vector.) If so, removing such
+    a skewed column would result in a direct loss of workable information.
 
     Parameters:
     ---------------
     data [pd.DataFrame / pd.Series] = the main dataframe to use.
     against [pd.Series] = the column within which to check contributors.
-    minority [bool] = if True, use the skewed feature's minority value instead.
+    minority [bool] = if False, use the feature's dominant value instead.
+                      (default = True)
 
     Returns:
     ---------------
@@ -160,11 +163,7 @@ def get_contrib(data, against, minority = False):
 
     Notes:
     ---------------
-    1. Errors are completely unhandled. Using try-except-else is believed to be
-    unnecessary since the possible errors arising out of misuse of the function
-    are verbose enough by themselves.
-
-    2. The output text of Series.value_counts() is always terminated with the
+    1. The output text of Series.value_counts() is always terminated with the
     name of the series passed as "against." This kind of behaviour is inherent
     to pd.Series.value_counts().
     """
@@ -245,6 +244,7 @@ def standard_pca(data, sum_eva = 5, standardised = True):
         data_pca = pca.fit_transform(data_standard)
     else:
         data_pca = pca.fit_transform(data)
+    
     pca_varatio = sorted(pca.explained_variance_ratio_, reverse = True)
 
     print("\n--------------------\nVariance Ratio:\n--------------------\n")
