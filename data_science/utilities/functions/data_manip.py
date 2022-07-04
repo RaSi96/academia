@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 # --------------------------------------------------------------------------- #
 def data_viewer(data, max_threshold = 5):
     """
@@ -12,10 +13,10 @@ def data_viewer(data, max_threshold = 5):
 
     Parameters:
     ---------------
-    data = the dataframe to use.
-    max_threshold = the maximum number of unique values per feature to use when
-                    checking how many columns have these many unique values.
-                    (default = 3 unique values per feature.)
+    data [pd.DataFrame] = the dataframe to use.
+    max_threshold [int] = the maximum number of unique values per feature to
+                          use when scanning.
+                          (default = 3)
 
     Returns:
     ---------------
@@ -79,9 +80,9 @@ def u_count(data, u_val = 5):
 
     Parameters:
     ---------------
-    data = the dataframe to use.
-    u_val = the number of unique values that a feature should have.
-            (default = 5)
+    data [pd.DataFrame] = the dataframe to use.
+    u_val [int] = the number of unique values that a feature should have.
+                  (default = 5)
 
     Returns:
     ---------------
@@ -111,10 +112,10 @@ def u_skew(data, u_dist = 0.80):
 
     Parameters:
     ---------------
-    data = the dataframe to use.
-    u_dist = the decimal percentage distribution that observations in a feature
-             should have. Should be between 0 and 1.
-             (default = 0.80)
+    data [pd.DataFrame] = the dataframe to use.
+    u_dist [int] = the percentage distribution that observations in a feature
+                   should have. Should be between 0 and 1.
+                   (default = 0.80)
 
     Returns:
     ---------------
@@ -130,6 +131,86 @@ def u_skew(data, u_dist = 0.80):
 
         return s_cols
 
+
+# --------------------------------------------------------------------------- #
+def get_contrib(data, against, minority = False):
+    """
+    A function that breaks down the contributors to a feature's minority or
+    majority value. Useful in understanding the level of skew within a feature.
+    ***See notes at bottom.***
+
+    If a dataframe feature has a skewed distribution (one value >=85%), instead
+    of removing the column outright it helps to understand whether the dominant
+    value can be used to regress against or classify multiple other values in
+    another feature (usually the target vector.) In that case, removing such a
+    skewed column would result in a direct loss of workable information.
+
+    The function receives the dataframe "data" which is believed to have skewed
+    features, then checks the normalised value counts in the feature "against"
+    using the dominant value in every column of "data".
+
+    Parameters:
+    ---------------
+    data [pd.DataFrame / pd.Series] = the main dataframe to use.
+    against [pd.Series] = the column within which to check contributors.
+    minority [bool] = if True, use the skewed feature's minority value instead.
+
+    Returns:
+    ---------------
+    Nothing.
+
+    Notes:
+    ---------------
+    1. The function expects "data" to have the target feature attached to it.
+    Sending in a dataframe and target feature separately (i.e. the dataframe
+    "data" does not have the target feature appended to it as a member column)
+    will result in an IndexError.
+
+    2. Errors are completely unhandled. Using try-except-else is believed to be
+    unnecessary since the possible errors arising out of misuse of the function
+    are verbose enough by themselves.
+
+    3. The output text of Series.value_counts() is always terminated with the
+    name of the series passed as "against." This kind of behaviour is inherent
+    to pd.Series.value_counts().
+    """
+    if isinstance(data, pd.core.series.Series):
+        # if we were sent in a single feature (pd.Series) we should concatenate
+        # it into a dataframe along with the target feature and use the result.
+
+        # get the series dominant value
+        if minority is False:
+            dom_val = data.value_counts().index[0]
+        else:
+            dom_val = data.value_counts().index[-1]
+
+        # get the series' name before concatenation
+        col = data.name
+
+        data = pd.concat([data, against], axis = 1)
+        print("Column:", col, "\n--------------------")
+        print((data.loc[data[col] == dom_val])[target.name]
+              .value_counts(normalize = True))
+
+    else:
+        # otherwise if we were sent in a dataframe (pd.DataFrame) we should
+        # loop through all the columns and print out the target feature's value
+        # counts corresponding to the dataframe column's dominant value.
+
+        for col in data.columns:
+            # get the dominant value from data's current column
+            if minority is False:
+                dom_val = data[col].value_counts().index[0]
+            else:
+                dom_val = data[col].value_counts().index[-1]
+
+            # use the dominant value to get a breakdown of it's constituents
+            print("Column:", col, "\n--------------------")
+            print((data.loc[data[col] == dom_val])[target.name]
+                  .value_counts(normalize = True), "\n")
+            print("\n")
+
+
 # --------------------------------------------------------------------------- #
 def standard_pca(data, sum_eva = 5, standardised = True):
     """
@@ -141,11 +222,11 @@ def standard_pca(data, sum_eva = 5, standardised = True):
 
     Parameters:
     ---------------
-    data = the dataframe to use.
-    sum_eva = the number of PCA components to sum.
-              (default = 5)
-    standardised (bool) = if true, the data has been standardised already.
-                         (default = True)
+    data [pd.DataFrame] = the dataframe to use.
+    sum_eva [int] = the number of PCA components to sum.
+                    (default = 5)
+    standardised [bool] = if true, the data has been standardised already.
+                          (default = True)
 
     Returns:
     ---------------
@@ -191,16 +272,16 @@ def prepare_data(X, y, split_size = 0.30, seed = 1337):
 
     Parameters:
     ---------------
-    X = the dataframe containing independent features.
-    y = the dataframe containing the target feature.
-    split_size = the desired size of the train/test split.
-                 (default = 0.30 or 30%.)
-    rand_seed = the random seed to use when splitting.
-                (default = 1337.)
+    X [pd.dataFrame] = the dataframe containing independent features.
+    y [pd.Series] = the target feature.
+    split_size [int] = the desired size of the train/test split.
+                       (default = 0.30)
+    rand_seed [int] = the random seed to use when splitting.
+                      (default = 1337)
 
     Returns:
     ---------------
-     X_train, X_test, y_train, y_test.
+    X_train, X_test, y_train, y_test.
     """
     X_train, X_test, y_train, y_test = train_test_split(X, y,
                                                         test_size = split_size,
@@ -222,12 +303,13 @@ def model_evaluation(actuals, predictions):
 
     Parameters:
     ---------------
-    actuals = the target variable's dataframe. This is usually of the form:
-              y_train and/or y_test; the actual data that you are trying to
-              predict.
-    predictions = the predicted values for y as a dataframe. This is usually of
-                  the form: pred_train and/or pred_test; the predictions that
-                  the model provides for estimating the values of y.
+    actuals [pd.Series / np.array] = the target variable's values. This is of
+                                     the form y_train and/or y_test; the actual
+                                     data that you are trying to predict.
+    predictions [pd.Series / np.array] = the predicted values for y. This is of
+                                         the form pred_train and/or pred_test;
+                                         the model's predictions for estimating
+                                         the values of y_train/y_test.
 
     Returns:
     ---------------
