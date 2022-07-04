@@ -137,7 +137,6 @@ def get_contrib(data, against, minority = False):
     """
     A function that breaks down the contributors to a feature's minority or
     majority value. Useful in understanding the level of skew within a feature.
-    ***See notes at bottom.***
 
     If a dataframe feature has a skewed distribution (one value >=85%), instead
     of removing the column outright it helps to understand whether the dominant
@@ -161,52 +160,50 @@ def get_contrib(data, against, minority = False):
 
     Notes:
     ---------------
-    1. The function expects "data" to have the target feature attached to it.
-    Sending in a dataframe and target feature separately (i.e. the dataframe
-    "data" does not have the target feature appended to it as a member column)
-    will result in an IndexError.
-
-    2. Errors are completely unhandled. Using try-except-else is believed to be
+    1. Errors are completely unhandled. Using try-except-else is believed to be
     unnecessary since the possible errors arising out of misuse of the function
     are verbose enough by themselves.
 
-    3. The output text of Series.value_counts() is always terminated with the
+    2. The output text of Series.value_counts() is always terminated with the
     name of the series passed as "against." This kind of behaviour is inherent
     to pd.Series.value_counts().
     """
     if isinstance(data, pd.core.series.Series):
         # if we were sent in a single feature (pd.Series) we should concatenate
         # it into a dataframe along with the target feature and use the result.
-
-        # get the series dominant value
         if minority is False:
             dom_val = data.value_counts().index[0]
         else:
             dom_val = data.value_counts().index[-1]
 
-        # get the series' name before concatenation
         col = data.name
 
         data = pd.concat([data, against], axis = 1)
-        print("Column:", col, "\n--------------------")
-        print((data.loc[data[col] == dom_val])[target.name]
+        print("Column \"{}\" value \"{}\" has these contributors:"
+              .format(col, dom_val))
+        print("--------------------")
+        print((data.loc[data[col] == dom_val])[against.name]
               .value_counts(normalize = True))
 
     else:
         # otherwise if we were sent in a dataframe (pd.DataFrame) we should
         # loop through all the columns and print out the target feature's value
         # counts corresponding to the dataframe column's dominant value.
+        if against.name not in data.columns:
+            data = pd.concat([data, against], axis = 1)
 
         for col in data.columns:
-            # get the dominant value from data's current column
             if minority is False:
                 dom_val = data[col].value_counts().index[0]
             else:
                 dom_val = data[col].value_counts().index[-1]
 
-            # use the dominant value to get a breakdown of it's constituents
-            print("Column:", col, "\n--------------------")
-            print((data.loc[data[col] == dom_val])[target.name]
+            if col == against.name:
+                continue
+            print("Column \"{}\" value \"{}\" has these contributors:"
+                  .format(col, dom_val))
+            print("--------------------")
+            print((data.loc[data[col] == dom_val])[against.name]
                   .value_counts(normalize = True), "\n")
             print("\n")
 
