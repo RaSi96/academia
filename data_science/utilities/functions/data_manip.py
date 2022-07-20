@@ -1,8 +1,10 @@
 import pandas as pd
 
+from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, accuracy_score, classification_report, roc_auc_score, roc_curve, auc
+
 
 # --------------------------------------------------------------------------- #
 def data_viewer(data, max_threshold = 5):
