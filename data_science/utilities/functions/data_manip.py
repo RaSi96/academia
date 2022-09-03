@@ -1,9 +1,10 @@
+import numpy as np
 import pandas as pd
 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, accuracy_score, classification_report, roc_auc_score, roc_curve, auc
+from sklearn.metrics import confusion_matrix, classification_report
 
 
 # --------------------------------------------------------------------------- #
@@ -12,9 +13,9 @@ def data_viewer(data, max_threshold = 5):
     Description:
     ---------------
     Basic EDA data viewing function displaying shape, head, tail, percentiled
-    descriptive statistics and per-feature data types, null values and number
-    of unique values. The distrubtion of unique values is also printed as a
-    percentage of the total number of columns.
+    descriptive statistics and per-feature data types, null values, uniques and
+    IQR. The distrubtion of unique values is also printed as a percentage of the
+    total number of columns.
 
     Parameters:
     ---------------
@@ -39,33 +40,43 @@ def data_viewer(data, max_threshold = 5):
         display(data.tail(10))
 
     print("\n--------------------\nSummary:\n--------------------")
-    dtype = data.dtypes.to_frame().transpose().set_axis(["dtype"])
-    descr = data.describe(percentiles = [0.25, 0.50, 0.75, 0.90, 0.99],
-                          include = "all")
-    nullv = data.isnull().sum().to_frame().transpose().set_axis(["nulls"])
-    nuniq = data.nunique().to_frame().transpose().set_axis(["uniques"])
+    # first we extract our numerical columns and calculate the IQR per feature
+    num_cols = data.select_dtypes(exclude = "object").columns
+    iqrs = []
 
-    summary = pd.concat([dtype, descr, nullv, nuniq],
-                        axis = 0, ignore_index = False)
-    summary.rename(mapper = {"unique": "n_categories",
-                             "top": "top_category",
-                             "freq": "modal_categ"},
-                   axis = "index",
-                   inplace = True)
+    for col in data.columns:
+        if col not in num_cols:
+            iqrs.append(np.nan)
+        else:
+            itp = "midpoint"
+            q1 = 0.25
+            q3 = 0.75
 
+            col_iqr = data[col].quantile(q3, itp) - data[col].quantile(q1, itp)
+            iqrs.append(col_iqr)
+
+    # then we begin carefully crafting our summary statistics dataframe
+    desc = data.describe(percentiles = [0.25, 0.50, 0.75, 0.90, 0.99],
+                         include = "all").transpose()
+
+    desc["unique"] = data.nunique().to_frame("unique")
+    desc.insert(0, "dtype", data.dtypes.values)
+    desc.insert(1, "nulls", data.isnull().sum().values)
+    desc.insert(7, "IQR", iqrs)
+    desc.rename(mapper = {"top": "modal_categ", "freq": "modal_freq"},
+                axis = "columns", inplace = True)
+
+    # and finally we display our carefully crafted summary statistics
     with pd.option_context("display.float_format", "{:.1f}".format,
-                           "display.max_columns", data.shape[1]):
-        display(summary)
+                           "display.max_columns", desc.shape[0]):
+        display(desc.transpose())
 
-    print("\n--------------------\nData types:\n--------------------")
-    print(data.dtypes.value_counts())
-
-    print("\n--------------------\nNull values:\n--------------------")
-    print(data.isnull().sum().value_counts())
+    print("\n--------------------\nIntrospection:\n--------------------")
+    print(data.info())
 
     print("\n--------------------\nUniques:\n--------------------")
     for test in range(1, max_threshold, 1):
-        ucols = (nuniq.transpose().uniques == test).sum()
+        ucols = (data.nunique().values == test).sum()
         ratio = (ucols / len(data.columns)) * 100
         print("{0} columns have {1} unique value(s) [{2:.2f}%]"
               .format(ucols, test, ratio))
@@ -79,7 +90,7 @@ def u_count(data, u_val = 5, exact = False):
     Description:
     ---------------
     A simple function to retrieve the features in a dataframe that have either
-    exactly or up to u_val number of unique values.
+    exactly or up to u_val number of unique values. "u" implies "unique".
 
     Parameters:
     ---------------
@@ -118,7 +129,7 @@ def u_skew(data, u_dist = 0.90):
     b    0.0534
     c    0.0310
     the feature will qualify since its dominant value constitues 90% and above
-    of the feature's data.
+    of the feature's data. "u" implies "unique".
 
     Parameters:
     ---------------
@@ -240,7 +251,8 @@ def standard_pca(data, sum_eva = 5, standardised = True):
     ---------------
     If standardised = False (i.e. the data hasn't been standardised), then
     StandardScaler() is used to standardise the data before running the PCA.
-    PCA.
+    The instance of StandardScaler() that was fitted to and transformed the
+    data is not returned.
     """
     pca = PCA()
 
@@ -249,7 +261,7 @@ def standard_pca(data, sum_eva = 5, standardised = True):
         data_pca = pca.fit_transform(data_standard)
     else:
         data_pca = pca.fit_transform(data)
-    
+
     pca_varatio = sorted(pca.explained_variance_ratio_, reverse = True)
 
     print("\n--------------------\nVariance Ratio:\n--------------------\n")
@@ -259,7 +271,7 @@ def standard_pca(data, sum_eva = 5, standardised = True):
     print(sum(pca_varatio[0:sum_eva]))
 
     if standardised == False:
-        return data_standard, data_pca, pca_varatio
+        return data_pca, pca_varatio, data_standard
     else:
         return data_pca, pca_varatio
 
@@ -285,23 +297,31 @@ def prepare_data(X, y, split_size = 0.30, seed = 1337):
     ---------------
     X_train, X_test, y_train, y_test.
     """
-    X_train, X_test, y_train, y_test = train_test_split(X, y,
+    X_train, X_test, y_train, y_test = train_test_split(X, y, stratify = y,
                                                         test_size = split_size,
-                                                        random_state = seed,
-                                                        stratify = y)
+                                                        random_state = seed)
+    print("Training:\n--------------------")
     print("X_train shape:", X_train.shape)
+    print("y_train dist:", y_train.value_counts(normalize = True))
+    print("--------------------\n\n")
+
+    print("Testing:\n--------------------")
     print("X_test shape:", X_test.shape)
+    print("y_test dist:", y_train.value_counts(normalize = True))
+    print("--------------------")
     return X_train, X_test, y_train, y_test
 
 
 # --------------------------------------------------------------------------- #
-def model_evaluation(actuals, predictions):
+def model_evaluation(actual, preds):
     """
     Description:
     ---------------
     A function to print out formatted evaluation metrics that gauge classifier
-    models' performance. Uses sklearn.metrics' confusion_matrix(),
-    classification_report() and accuracy_score().
+    models' performance. Uses sklearn.metrics' confusion_matrix() and
+    classification_report(). This function only handles binary classification.
+    The labels of the confusion matrix are internally provided as [1, 0] so as
+    to keep the orientation reliable (x = [yes, no], y = [yes, no]).
 
     Parameters:
     ---------------
@@ -312,21 +332,20 @@ def model_evaluation(actuals, predictions):
                                          the form pred_train and/or pred_test;
                                          the model's predictions for estimating
                                          the values of y_train/y_test.
-
     Returns:
     ---------------
     Nothing.
     """
+    labs = [1, 0]
+
     print('Confusion Matrix:')
-    cmatrix = pd.DataFrame(confusion_matrix(actuals, predictions),
-                           columns = ["Predicted NO", "Predicted YES"],
-                           index = ["Actual NO", "Actual YES"])
+    cmatrix = pd.DataFrame(confusion_matrix(actual, preds, labels = labs),
+                           columns = ["Predicted YES", "Predicted NO"],
+                           index = ["Actual YES", "Actual NO"])
     display(cmatrix)
 
     print('\nReport: ')
-    print(classification_report(actuals, predictions))
-
-    print('\nAccuracy Score :', accuracy_score(actuals, predictions))
+    print(classification_report(actual, preds))
     print("-------------------------------------------------------------")
 
 
