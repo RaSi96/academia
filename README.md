@@ -1,9 +1,8 @@
-# academia
+# Academia
+This repository is dedicated to the various academic projects I have worked on, all licensed under the APGLv3.
 
-Various academic projects that I have worked on, all licensed under the APGLv3. Constructive criticism is always welcome and I do intend to keep the projects here alive well after I'm no longer a student!
+## Embedded Systems projects
+Simple and relatively elementary course-level projects I've worked on while learning and practising Embedded Systems Engineering. Most of the projects here can be expected to span programming assignments involving microcontrollers from the AVR/ARM/MSP family. They're wicked cool!
 
-## C projects
-Simple and relatively elementary course-level projects I've worked on while learning and practising C programming. This folder will house projects related to embedded systems engineering and VLSI (and might be reshuffled in the future to better represent topical hierarchy) as well as (tiny) home and personal automation programs, though these categories aren't limiting by any means.
-
-## data science
-Academic projects I've worked on while learning and practising data science. Most of them should be expected to be Jupyter Lab worksheets or little Python scripts that help with data wrangling.
+## Machine Learning projects
+Academic projects I've worked on while sharpening and finessing my ML/AI skills. Most of the projects here can be expected to involve applications of ML/AI techniques and research material to private and/or public datasets. Project files will not include private datasets for obvious reasons, and will most likely consist of Jupyter HTML files or little Python scripts that help with data wrangling.
